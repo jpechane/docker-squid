@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+ACCESS_LOG="/var/log/squid3/access.log"
+
 create_log_dir() {
   mkdir -p ${SQUID_LOG_DIR}
   chmod -R 755 ${SQUID_LOG_DIR}
@@ -39,7 +41,13 @@ if [[ -z ${1} ]]; then
     $(which squid3) -N -f /etc/squid3/squid.conf -z
   fi
   echo "Starting squid3..."
-  exec $(which squid3) -f /etc/squid3/squid.conf -NYCd 1 ${EXTRA_ARGS}
+  exec $(which squid3) -f /etc/squid3/squid.conf -NYCd 1 ${EXTRA_ARGS} &
+  until [ -f "$ACCESS_LOG" ]; do
+    echo Waiting for $ACCESS_LOG to become available
+    sleep 1
+  done
+  echo Redirecting access log to console
+  tail -f /var/log/squid3/access.log
 else
   exec "$@"
 fi
